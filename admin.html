@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>BURGERHUB — Админ-панель</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        button, button:focus, button:active,
+        a, a:focus, a:active {
+            -webkit-tap-highlight-color: transparent !important;
+            -webkit-touch-callout: none !important;
+            user-select: none !important;
+        }
+
+        input { -webkit-tap-highlight-color: rgba(212, 162, 78, 0.15) !important; }
+
+        :root {
+            --bg: #0C0C0E;
+            --bg-elevated: #161618;
+            --bg-card: #1C1C20;
+            --bg-card-hover: #222226;
+            --bg-glass: rgba(12, 12, 14, 0.82);
+            --bg-input: #121214;
+            --text-primary: #F0EDE8;
+            --text-secondary: #9C9690;
+            --text-tertiary: #6B6662;
+            --accent: #D4A24E;
+            --accent-hover: #E0B45E;
+            --accent-dim: rgba(212, 162, 78, 0.12);
+            --accent-text: #D4A24E;
+            --green: #4CAF50;
+            --green-dim: rgba(76, 175, 80, 0.1);
+            --red: #EF5350;
+            --red-dim: rgba(239, 83, 80, 0.1);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-hover: rgba(255, 255, 255, 0.1);
+            --border-accent: rgba(212, 162, 78, 0.25);
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+            --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
+            --shadow-lg: 0 8px 48px rgba(0, 0, 0, 0.7);
+            --shadow-glow: 0 4px 32px rgba(212, 162, 78, 0.08);
+            --radius-sm: 12px;
+            --radius: 18px;
+            --radius-lg: 24px;
+            --radius-full: 9999px;
+            --transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-primary);
+            min-height: 100vh;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.08); border-radius: 10px; }
+
+        /* ===== LOGIN ===== */
+        .login-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            background: rgba(12, 12, 14, 0.92);
+            backdrop-filter: blur(20px) saturate(1.2);
+            -webkit-backdrop-filter: blur(20px) saturate(1.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .login-overlay.hidden { display: none; }
+
+        .login-modal {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            max-width: 380px;
+            width: 100%;
+            padding: 40px 32px 32px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+        .login-modal::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 0 0 3px 3px;
+        }
+        .login-modal__logo {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent), #C89430);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 14px;
+            color: #0C0C0E;
+            margin: 0 auto 16px;
+            box-shadow: 0 4px 20px rgba(212, 162, 78, 0.3);
+        }
+        .login-modal__title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-align: center;
+            letter-spacing: -0.3px;
+        }
+        .login-modal__title span { color: var(--accent-text); }
+        .login-modal__sub {
+            font-size: 13px;
+            color: var(--text-tertiary);
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .login-modal__input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: var(--radius-sm);
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 16px;
+            transition: var(--transition);
+            margin-bottom: 14px;
+            outline: none;
+        }
+        .login-modal__input:focus {
+            border-color: var(--border-accent);
+            box-shadow: 0 0 0 3px var(--accent-dim);
+        }
+        .login-modal__btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: var(--radius-sm);
+            background: linear-gradient(135deg, var(--accent), #C89430);
+            color: #0C0C0E;
+            font-weight: 700;
+            font-size: 15px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            letter-spacing: 0.3px;
+            box-shadow: 0 2px 16px rgba(212, 162, 78, 0.2);
+        }
+        .login-modal__btn:active { transform: scale(0.97); }
+        .login-modal__error {
+            color: var(--red);
+            font-size: 13px;
+            text-align: center;
+            margin-top: 12px;
+            display: none;
+        }
+        .login-modal__error.show { display: block; }
+
+        /* ===== ADMIN PANEL ===== */
+        .admin-panel {
+            display: none;
+            min-height: 100vh;
+            padding: 24px 20px 40px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        .admin-panel.open { display: block; }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .admin-header__logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .admin-header__icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent), #C89430);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 11px;
+            color: #0C0C0E;
+            box-shadow: 0 2px 12px rgba(212, 162, 78, 0.3);
+        }
+        .admin-header__title {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.3px;
+        }
+        .admin-header__title span { color: var(--accent-text); }
+        .admin-header__actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        .admin-header__btn {
+            padding: 8px 18px;
+            border-radius: var(--radius-full);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .admin-header__btn:hover { border-color: var(--border-hover); color: var(--text-primary); }
+        .admin-header__btn:active { transform: scale(0.96); }
+        .admin-header__btn.primary {
+            background: linear-gradient(135deg, var(--accent), #C89430);
+            color: #0C0C0E;
+            border-color: var(--accent);
+        }
+
+        /* ===== STATS ===== */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            padding: 16px 14px;
+            border: 1px solid var(--border);
+            text-align: center;
+            transition: var(--transition);
+        }
+        .stat-card:hover { border-color: var(--border-hover); }
+        .stat-card__number {
+            font-size: 26px;
+            font-weight: 800;
+            color: var(--accent-text);
+            line-height: 1.1;
+            letter-spacing: -0.5px;
+        }
+        .stat-card__number.green { color: var(--green); }
+        .stat-card__number.orange { color: var(--accent-text); }
+        .stat-card__number.red { color: var(--red); }
+        .stat-card__label {
+            font-size: 9px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            font-weight: 600;
+        }
+
+        /* ===== TOOLBAR ===== */
+        .toolbar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filters {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            flex: 1;
+        }
+        .filter-btn {
+            padding: 7px 16px;
+            border-radius: var(--radius-full);
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--bg-card);
+            color: var(--text-tertiary);
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: var(--transition);
+            min-height: 36px;
+            white-space: nowrap;
+        }
+        .filter-btn:hover { border-color: var(--border-hover); color: var(--text-secondary); }
+        .filter-btn.active {
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            border-color: var(--border-accent);
+        }
+        .filter-btn:active { transform: scale(0.95); }
+
+        .search-input {
+            padding: 8px 14px;
+            border-radius: var(--radius-full);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            font-size: 12px;
+            width: 200px;
+            transition: var(--transition);
+            outline: none;
+            min-height: 36px;
+            flex-shrink: 0;
+        }
+        .search-input:focus { border-color: var(--border-accent); }
+        .search-input::placeholder { color: var(--text-tertiary); }
+
+        /* ===== NOTIF BANNER ===== */
+        .notif-banner {
+            background: var(--accent-dim);
+            border: 1px solid var(--border-accent);
+            border-radius: var(--radius-sm);
+            padding: 10px 16px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .notif-banner__text {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .notif-banner__text strong { color: var(--accent-text); }
+        .notif-banner__btn {
+            padding: 6px 18px;
+            border-radius: var(--radius-full);
+            background: linear-gradient(135deg, var(--accent), #C89430);
+            color: #0C0C0E;
+            font-weight: 600;
+            font-size: 12px;
+            border: none;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        .notif-banner__btn:active { transform: scale(0.95); }
+
+        /* ===== ORDERS ===== */
+        .orders-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .order-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            padding: 16px 18px;
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            transition: var(--transition);
+        }
+        .order-card:hover { border-color: var(--border-hover); }
+        .order-card.processing { border-left-color: var(--accent); }
+        .order-card.accepted { border-left-color: var(--green); }
+        .order-card.cancelled {
+            border-left-color: var(--red);
+            opacity: 0.6;
+        }
+
+        .order-card__top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-bottom: 6px;
+        }
+        .order-card__id {
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--accent-text);
+            letter-spacing: -0.2px;
+        }
+        .order-card__date {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+        .order-card__type {
+            font-size: 10px;
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            padding: 2px 12px;
+            border-radius: var(--radius-full);
+            display: inline-block;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: 1px solid var(--border-accent);
+        }
+        .order-card__customer {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 4px 0;
+        }
+        .order-card__items {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin: 4px 0;
+            white-space: pre-line;
+            line-height: 1.5;
+        }
+        .order-card__total {
+            font-weight: 700;
+            color: var(--accent-text);
+            font-size: 15px;
+            margin: 4px 0;
+        }
+        .order-card__address {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+            padding-top: 4px;
+            border-top: 1px solid var(--border);
+        }
+        .order-card__bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .order-card__status {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 14px;
+            border-radius: var(--radius-full);
+            display: inline-block;
+        }
+        .order-card__status.processing {
+            background: var(--accent-dim);
+            color: var(--accent-text);
+            border: 1px solid var(--border-accent);
+        }
+        .order-card__status.accepted {
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid rgba(76, 175, 80, 0.2);
+        }
+        .order-card__status.cancelled {
+            background: var(--red-dim);
+            color: var(--red);
+            border: 1px solid rgba(239, 83, 80, 0.15);
+        }
+        .order-card__actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        .order-card__btn {
+            padding: 6px 16px;
+            border-radius: var(--radius-full);
+            font-weight: 600;
+            font-size: 11px;
+            transition: var(--transition);
+            border: none;
+            cursor: pointer;
+            min-height: 34px;
+        }
+        .order-card__btn:active { transform: scale(0.94); }
+        .order-card__btn.accept {
+            background: linear-gradient(135deg, var(--green), #388E3C);
+            color: #fff;
+        }
+        .order-card__btn.cancel {
+            background: var(--red);
+            color: #fff;
+        }
+        .order-card__btn.restore {
+            background: linear-gradient(135deg, var(--accent), #C89430);
+            color: #0C0C0E;
+        }
+
+        .empty-orders {
+            text-align: center;
+            color: var(--text-tertiary);
+            padding: 60px 0;
+            font-size: 14px;
+            background: var(--bg-card);
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        /* ===== TOAST ===== */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 20px;
+            color: var(--text-primary);
+            font-size: 13px;
+            font-weight: 500;
+            box-shadow: var(--shadow-lg);
+            z-index: 2000;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @media (max-width: 800px) {
+            .stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+            .stat-card__number { font-size: 22px; }
+            .admin-header { gap: 8px; }
+            .admin-header__actions { margin-left: auto; }
+            .toolbar { align-items: stretch; }
+            .filters { gap: 4px; align-items: center; }
+            .filter-btn { padding: 5px 12px; font-size: 10px; }
+            .search-input { width: 180px; flex-shrink: 0; }
+            .order-card { padding: 14px 14px; }
+            .admin-panel { padding: 16px 12px 30px; }
+        }
+        @media (max-width: 400px) {
+            .stats { grid-template-columns: 1fr 1fr; gap: 6px; }
+            .stat-card { padding: 12px 10px; }
+            .stat-card__number { font-size: 18px; }
+            .login-modal { padding: 28px 18px 24px; }
+            .admin-header__title { font-size: 15px; }
+            .order-card__id { font-size: 13px; }
+            .order-card__customer { font-size: 13px; }
+            .order-card__total { font-size: 14px; }
+            .filter-btn { font-size: 10px; padding: 5px 12px; min-height: 32px; }
+            .search-input { width: 160px; font-size: 11px; }
+            .admin-header__btn { font-size: 11px; padding: 6px 14px; min-height: 36px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="toast" id="toast"></div>
+
+    <div class="login-overlay" id="loginOverlay">
+        <div class="login-modal">
+            <div class="login-modal__logo">BH</div>
+            <div class="login-modal__title">BURGER<span>HUB</span></div>
+            <div class="login-modal__sub">Введите пароль для доступа к панели</div>
+            <input type="password" class="login-modal__input" id="adminPassword" placeholder="Пароль" autocomplete="off">
+            <button class="login-modal__btn" id="loginBtn">Войти</button>
+            <div class="login-modal__error" id="loginError">Неверный пароль</div>
+        </div>
+    </div>
+
+    <div class="admin-panel" id="adminPanel">
+        <div class="admin-header">
+            <div class="admin-header__title">Заказы <span>BURGERHUB</span></div>
+            <div class="admin-header__actions">
+                <button class="admin-header__btn" id="exportBtn">Экспорт</button>
+                <button class="admin-header__btn primary" onclick="window.location.href='index.html'">На сайт</button>
+            </div>
+        </div>
+
+        <div class="notif-banner" id="notifBanner">
+            <div class="notif-banner__text">
+                <strong>Включите уведомления</strong> — оповещения о новых заказах
+            </div>
+            <button class="notif-banner__btn" id="enableNotifBtn">Включить</button>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-card__number" id="statTotal">0</div>
+                <div class="stat-card__label">Всего</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number orange" id="statProcessing">0</div>
+                <div class="stat-card__label">В обработке</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number green" id="statAccepted">0</div>
+                <div class="stat-card__label">Принято</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number red" id="statCancelled">0</div>
+                <div class="stat-card__label">Отменено</div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-card__number" id="revenueToday">0 &#8381;</div>
+                <div class="stat-card__label">За день</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number" id="revenueWeek">0 &#8381;</div>
+                <div class="stat-card__label">За неделю</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number" id="revenueMonth">0 &#8381;</div>
+                <div class="stat-card__label">За месяц</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-card__number" id="revenueTotal">0 &#8381;</div>
+                <div class="stat-card__label">Всего</div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="filters" id="filters">
+                <button class="filter-btn active" data-filter="processing">В обработке</button>
+                <button class="filter-btn" data-filter="accepted">Принятые</button>
+                <button class="filter-btn" data-filter="cancelled">Отменённые</button>
+                <button class="filter-btn" data-filter="today">Сегодня</button>
+                <button class="filter-btn" data-filter="all">Все</button>
+                <button class="filter-btn" data-filter="week">Неделя</button>
+                <button class="filter-btn" data-filter="month">Месяц</button>
+                <input class="search-input" id="searchInput" placeholder="Поиск по номеру, имени">
+            </div>
+        </div>
+
+        <div class="orders-list" id="ordersList">
+            <div class="empty-orders">Загрузка заказов...</div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  API — Backend
+        // ============================================================
+        const API_BASE = '';
+
+        function getAuthHeaders() {
+            const token = localStorage.getItem('burgerhubAdminToken');
+            return {
+                'Content-Type': 'application/json',
+                ...(token ? { 'Authorization': 'Bearer ' + token } : {})
+            };
+        }
+
+        async function getOrdersFromCloud() {
+            try {
+                const response = await fetch(API_BASE + '/api/orders', {
+                    headers: getAuthHeaders()
+                });
+                if (response.status === 401) {
+                    localStorage.removeItem('burgerhubAdminToken');
+                    localStorage.removeItem('burgerhubAdminAuth');
+                    document.getElementById('loginOverlay').classList.remove('hidden');
+                    document.getElementById('adminPanel').classList.remove('open');
+                    return [];
+                }
+                if (!response.ok) return [];
+                return await response.json();
+            } catch (e) { return []; }
+        }
+
+        async function updateOrderInCloud(orderId, newStatus) {
+            try {
+                const response = await fetch(API_BASE + '/api/orders/' + orderId, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ status: newStatus })
+                });
+                return response.ok;
+            } catch (e) { return false; }
+        }
+
+        let orders = [];
+        let currentFilter = 'processing';
+        let searchQuery = '';
+
+        // ============================================================
+        //  TOAST
+        // ============================================================
+        function showToast(msg) {
+            var t = document.getElementById('toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            clearTimeout(t._timer);
+            t._timer = setTimeout(function() { t.classList.remove('show'); }, 2200);
+        }
+
+        // ============================================================
+        //  SOUND
+        // ============================================================
+        function playNotificationSound() {
+            try {
+                var ctx = new (window.AudioContext || window.webkitAudioContext)();
+                function beep(freq, dur, delay) {
+                    setTimeout(function() {
+                        var o = ctx.createOscillator();
+                        var g = ctx.createGain();
+                        o.connect(g);
+                        g.connect(ctx.destination);
+                        o.frequency.value = freq;
+                        o.type = 'sine';
+                        g.gain.setValueAtTime(0.8, ctx.currentTime);
+                        g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+                        o.start(ctx.currentTime);
+                        o.stop(ctx.currentTime + dur);
+                    }, delay);
+                }
+                beep(880, 0.25, 0);
+                beep(1100, 0.15, 150);
+            } catch(e) {}
+        }
+
+        // ============================================================
+        //  STATS
+        // ============================================================
+        function updateStats() {
+            var total = orders.length;
+            var processing = orders.filter(function(o) { return o.status === 'processing'; }).length;
+            var accepted = orders.filter(function(o) { return o.status === 'accepted'; }).length;
+            var cancelled = orders.filter(function(o) { return o.status === 'cancelled'; }).length;
+
+            document.getElementById('statTotal').textContent = total;
+            document.getElementById('statProcessing').textContent = processing;
+            document.getElementById('statAccepted').textContent = accepted;
+            document.getElementById('statCancelled').textContent = cancelled;
+
+            var today = new Date().toDateString();
+            var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+            var monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+            var acceptedOrders = orders.filter(function(o) { return o.status === 'accepted'; });
+
+            var rToday = acceptedOrders.filter(function(o) { return new Date(o.date).toDateString() === today; }).reduce(function(s, o) { return s + o.total; }, 0);
+            var rWeek = acceptedOrders.filter(function(o) { return new Date(o.date) >= weekAgo; }).reduce(function(s, o) { return s + o.total; }, 0);
+            var rMonth = acceptedOrders.filter(function(o) { return new Date(o.date) >= monthAgo; }).reduce(function(s, o) { return s + o.total; }, 0);
+            var rTotal = acceptedOrders.reduce(function(s, o) { return s + o.total; }, 0);
+
+            document.getElementById('revenueToday').textContent = rToday + ' \u20BD';
+            document.getElementById('revenueWeek').textContent = rWeek + ' \u20BD';
+            document.getElementById('revenueMonth').textContent = rMonth + ' \u20BD';
+            document.getElementById('revenueTotal').textContent = rTotal + ' \u20BD';
+        }
+
+        function getFilteredOrders(filter) {
+            var today = new Date().toDateString();
+            var weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7);
+            var monthAgo = new Date(); monthAgo.setMonth(monthAgo.getMonth() - 1);
+
+            var filtered = orders;
+            if (filter !== 'all') {
+                switch(filter) {
+                    case 'processing': filtered = orders.filter(function(o) { return o.status === 'processing'; }); break;
+                    case 'accepted': filtered = orders.filter(function(o) { return o.status === 'accepted'; }); break;
+                    case 'cancelled': filtered = orders.filter(function(o) { return o.status === 'cancelled'; }); break;
+                    case 'today': filtered = orders.filter(function(o) { return new Date(o.date).toDateString() === today; }); break;
+                    case 'week': filtered = orders.filter(function(o) { return new Date(o.date) >= weekAgo; }); break;
+                    case 'month': filtered = orders.filter(function(o) { return new Date(o.date) >= monthAgo; }); break;
+                    default: filtered = orders;
+                }
+            }
+
+            if (searchQuery) {
+                var q = searchQuery.toLowerCase();
+                filtered = filtered.filter(function(o) {
+                    return String(o.id).toLowerCase().indexOf(q) !== -1
+                        || o.name.toLowerCase().indexOf(q) !== -1
+                        || o.phone.indexOf(q) !== -1
+                        || o.items.toLowerCase().indexOf(q) !== -1;
+                });
+            }
+
+            return filtered.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+        }
+
+        function renderOrders() {
+            var container = document.getElementById('ordersList');
+            var filtered = getFilteredOrders(currentFilter);
+            updateStats();
+
+            if (filtered.length === 0) {
+                container.innerHTML = '<div class="empty-orders">Заказов пока нет</div>';
+                return;
+            }
+
+            container.innerHTML = filtered.map(function(order) {
+                var statusText = { processing: 'В обработке', accepted: 'Принят', cancelled: 'Отменён' }[order.status] || order.status;
+                var statusClass = order.status || 'processing';
+
+                return '<div class="order-card ' + statusClass + '">'
+                    + '<div class="order-card__top">'
+                        + '<span class="order-card__id">Заказ #' + String(order.id).slice(-6) + '</span>'
+                        + '<span class="order-card__date">' + new Date(order.date).toLocaleString('ru-RU') + '</span>'
+                    + '</div>'
+                    + '<div><span class="order-card__type">' + (order.type === 'delivery' ? 'Доставка' : 'С собой') + '</span></div>'
+                    + '<div class="order-card__customer">' + order.name + ' | ' + order.phone + '</div>'
+                    + '<div class="order-card__items">' + order.items + '</div>'
+                    + '<div class="order-card__total">' + order.total + ' \u20BD</div>'
+                    + (order.address ? '<div class="order-card__address">' + order.address + '</div>' : '')
+                    + '<div class="order-card__bottom">'
+                        + '<span class="order-card__status ' + statusClass + '">' + statusText + '</span>'
+                        + '<div class="order-card__actions">'
+                            + (order.status === 'processing' ? '<button class="order-card__btn accept" onclick="updateOrder(' + order.id + ', \'accepted\')">Принять</button><button class="order-card__btn cancel" onclick="updateOrder(' + order.id + ', \'cancelled\')">Отменить</button>' : '')
+                            + (order.status === 'accepted' ? '<button class="order-card__btn cancel" onclick="updateOrder(' + order.id + ', \'cancelled\')">Отменить</button>' : '')
+                            + (order.status === 'cancelled' ? '<button class="order-card__btn restore" onclick="updateOrder(' + order.id + ', \'processing\')">Восстановить</button>' : '')
+                        + '</div>'
+                    + '</div>'
+                + '</div>';
+            }).join('');
+        }
+
+        async function updateOrder(orderId, newStatus) {
+            var success = await updateOrderInCloud(orderId, newStatus);
+            if (success) {
+                var order = orders.find(function(o) { return o.id === orderId; });
+                if (order) order.status = newStatus;
+                renderOrders();
+                showToast('Статус заказа #' + String(orderId).slice(-6) + ' изменён');
+                if (newStatus === 'processing') playNotificationSound();
+            } else {
+                showToast('Ошибка обновления заказа');
+            }
+        }
+
+        // ============================================================
+        //  EXPORT
+        // ============================================================
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            var text = 'BURGERHUB — Отчёт по заказам\n';
+            text += 'Дата: ' + new Date().toLocaleString('ru-RU') + '\n';
+            text += 'Всего заказов: ' + orders.length + '\n\n';
+
+            orders.forEach(function(o) {
+                text += 'Заказ #' + String(o.id).slice(-6) + ' | ' + new Date(o.date).toLocaleString('ru-RU') + '\n';
+                text += 'Клиент: ' + o.name + ' | ' + o.phone + '\n';
+                text += 'Тип: ' + (o.type === 'delivery' ? 'Доставка' : 'С собой') + '\n';
+                text += 'Статус: ' + ({ processing: 'В обработке', accepted: 'Принят', cancelled: 'Отменён' }[o.status] || o.status) + '\n';
+                if (o.address) text += 'Адрес: ' + o.address + '\n';
+                text += 'Состав:\n' + o.items + '\n';
+                text += 'Сумма: ' + o.total + ' \u20BD\n';
+                text += '---\n';
+            });
+
+            var blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'burgerhub_orders_' + new Date().toISOString().slice(0, 10) + '.txt';
+            a.click();
+            URL.revokeObjectURL(a.href);
+            showToast('Отчёт экспортирован');
+        });
+
+        // ============================================================
+        //  SEARCH
+        // ============================================================
+        document.getElementById('searchInput').addEventListener('input', function() {
+            searchQuery = this.value.trim();
+            renderOrders();
+        });
+
+        // ============================================================
+        //  EVENTS
+        // ============================================================
+        document.querySelectorAll('.filter-btn').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+                this.classList.add('active');
+                currentFilter = this.dataset.filter;
+                renderOrders();
+            });
+        });
+
+        document.getElementById('loginBtn').addEventListener('click', async function() {
+            var pwd = document.getElementById('adminPassword').value.trim();
+
+            try {
+                const response = await fetch(API_BASE + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: pwd })
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    localStorage.setItem('burgerhubAdminToken', data.token);
+                    localStorage.setItem('burgerhubAdminAuth', 'true');
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.add('open');
+                    loadOrders();
+                    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        document.getElementById('notifBanner').style.display = 'none';
+                    }
+                } else {
+                    document.getElementById('loginError').classList.add('show');
+                    document.getElementById('adminPassword').value = '';
+                    document.getElementById('adminPassword').focus();
+                }
+            } catch (e) {
+                document.getElementById('loginError').classList.add('show');
+                document.getElementById('adminPassword').value = '';
+                document.getElementById('adminPassword').focus();
+            }
+        });
+
+        document.getElementById('adminPassword').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') document.getElementById('loginBtn').click();
+        });
+
+        document.getElementById('enableNotifBtn').addEventListener('click', function() {
+            if ('Notification' in window) {
+                Notification.requestPermission().then(function(permission) {
+                    if (permission === 'granted') {
+                        document.getElementById('notifBanner').style.display = 'none';
+                    }
+                });
+            }
+        });
+
+        // ============================================================
+        //  LOAD & AUTO-REFRESH
+        // ============================================================
+        async function loadOrders() {
+            orders = await getOrdersFromCloud();
+            renderOrders();
+            return orders;
+        }
+
+        async function checkNewOrders() {
+            var currentOrders = await getOrdersFromCloud();
+            var newProcessing = currentOrders.filter(function(o) { return o.status === 'processing'; }).length;
+            var oldProcessing = orders.filter(function(o) { return o.status === 'processing'; }).length;
+
+            if (newProcessing > oldProcessing) {
+                orders = currentOrders;
+                renderOrders();
+                playNotificationSound();
+                showToast('Поступил новый заказ!');
+
+                if ('Notification' in window && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+                    navigator.serviceWorker.ready.then(function(reg) {
+                        reg.showNotification('Новый заказ!', {
+                            body: 'Поступил новый заказ в BURGERHUB',
+                            icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23D4A24E"/><text x="50" y="68" font-size="50" font-weight="800" text-anchor="middle" fill="%230C0C0E">BH</text></svg>',
+                            badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" rx="20" fill="%23D4A24E"/><text x="50" y="68" font-size="50" font-weight="800" text-anchor="middle" fill="%230C0C0E">BH</text></svg>',
+                            vibrate: [200, 100, 200],
+                            tag: 'new-order',
+                            renotify: true,
+                            requireInteraction: true
+                        });
+                    });
+                }
+            }
+        }
+
+        setInterval(checkNewOrders, 3000);
+
+        // ============================================================
+        //  AUTO-LOGIN
+        // ============================================================
+        (function() {
+            try {
+                if (localStorage.getItem('burgerhubAdminAuth') === 'true' && localStorage.getItem('burgerhubAdminToken')) {
+                    document.getElementById('loginOverlay').classList.add('hidden');
+                    document.getElementById('adminPanel').classList.add('open');
+                    loadOrders();
+                    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(function(){});
+                    if ('Notification' in window && Notification.permission === 'granted') {
+                        document.getElementById('notifBanner').style.display = 'none';
+                    }
+                }
+            } catch(e) {}
+        })();
+
+        console.log('BURGERHUB Admin Panel loaded');
+    </script>
+</body>
+</html>
