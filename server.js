@@ -33,14 +33,14 @@ async function start() {
     await db.initDB();
     await db.autoSeedIfEmpty();
     initBot();
-    app.listen(PORT, () => {
-      console.log('BURGERHUB server running on port ' + PORT);
-    });
+    console.log('Database connected');
   } catch (err) {
-    console.error('Failed to start server:');
-    console.error(JSON.stringify({ message: err.message, code: err.code, stack: err.stack }, null, 2));
-    setTimeout(() => process.exit(1), 1000);
+    console.error('Database connection failed, server will run without DB');
+    console.error(JSON.stringify({ message: err.message, code: err.code }, null, 2));
   }
+  app.listen(PORT, () => {
+    console.log('BURGERHUB server running on port ' + PORT);
+  });
 }
 
 start();
