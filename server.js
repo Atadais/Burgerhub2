@@ -31,6 +31,7 @@ app.get('*', (req, res) => {
 async function start() {
   try {
     await db.initDB();
+    await db.autoSeedIfEmpty();
     initBot();
     app.listen(PORT, () => {
       console.log('BURGERHUB server running on port ' + PORT);
