@@ -36,8 +36,9 @@ async function start() {
       console.log('BURGERHUB server running on port ' + PORT);
     });
   } catch (err) {
-    console.error('Failed to start server:', err.message);
-    process.exit(1);
+    console.error('Failed to start server:');
+    console.error(JSON.stringify({ message: err.message, code: err.code, stack: err.stack }, null, 2));
+    setTimeout(() => process.exit(1), 1000);
   }
 }
 
