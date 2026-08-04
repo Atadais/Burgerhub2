@@ -251,7 +251,12 @@
     // ============================================
     // STATE
     // ============================================
-    let cart = JSON.parse(localStorage.getItem('bh_cart') || '[]');
+    let cart = JSON.parse(localStorage.getItem('bh_cart') || '[]').map(item => {
+        if (!item.cartKey) {
+            item.cartKey = item.variantLabel ? `${item.itemId}_${item.variantLabel}` : item.itemId;
+        }
+        return item;
+    });
     let currentUser = JSON.parse(localStorage.getItem('bh_user') || 'null');
     let orders = getStoredOrders();
     let activeCategory = MENU.length > 0 ? MENU[0].key : 'burgers';
@@ -360,7 +365,10 @@
             const variantLabel = hasVariants ? item.variants[selIdx].label : null;
             const cartKey = variantLabel ? `${item.id}_${selIdx}` : item.id;
 
-            const existingInCart = cart.find(ci => ci.cartKey === cartKey);
+            const existingInCart = cart.find(ci => {
+                const k = ci.cartKey || ci.itemId;
+                return String(k) === String(cartKey) || String(ci.cartKey) === String(cartKey) || String(ci.itemId) === String(cartKey);
+            });
             const qty = existingInCart ? existingInCart.qty : 0;
 
             let variantsHtml = '';
@@ -394,7 +402,7 @@
             }
 
             return `
-                <div class="menu-card fade-in" style="transition-delay: ${i * 0.04}s">
+                <div class="menu-card fade-in fade-in--visible">
                     ${imageHtml}
                     <div class="menu-card__top">
                         <h3 class="menu-card__name">${item.name}</h3>
@@ -408,10 +416,65 @@
                 </div>
             `;
         }).join('');
+    }
 
-        // Trigger fade-in animations
-        requestAnimationFrame(() => {
-            $$('.fade-in').forEach(el => el.classList.add('fade-in--visible'));
+    function updateCardQtyControls() {
+        const cat = MENU.find(c => c.key === activeCategory);
+        if (!cat || !dom.menuItems) return;
+
+        cat.items.forEach(item => {
+            const hasVariants = item.variants && item.variants.length > 0;
+            const selIdx = selectedVariants[item.id] || 0;
+            const variantLabel = hasVariants ? item.variants[selIdx].label : null;
+            const cartKey = variantLabel ? `${item.id}_${selIdx}` : item.id;
+
+            const existingInCart = cart.find(ci => {
+                const k = ci.cartKey || ci.itemId;
+                return String(k) === String(cartKey) || String(ci.cartKey) === String(cartKey) || String(ci.itemId) === String(cartKey);
+            });
+            const qty = existingInCart ? existingInCart.qty : 0;
+
+            const cards = dom.menuItems.querySelectorAll('.menu-card');
+            cards.forEach(card => {
+                const addBtn = card.querySelector(`.menu-card__add[data-item-id="${item.id}"]`);
+                const qtyCtrl = card.querySelector(`.menu-card__qty-control[data-item-id="${item.id}"]`);
+                const priceEl = card.querySelector(`.menu-card__price[data-item-id="${item.id}"]`);
+
+                if (addBtn || qtyCtrl || priceEl) {
+                    const footer = card.querySelector('.menu-card__footer');
+                    if (!footer) return;
+
+                    let actionBtnHtml = '';
+                    if (qty > 0) {
+                        actionBtnHtml = `
+                            <div class="menu-card__qty-control" data-item-id="${item.id}" data-cart-key="${cartKey}">
+                                <button class="menu-card__qty-btn" data-card-action="minus" data-key="${cartKey}">-</button>
+                                <span class="menu-card__qty-num">${qty}</span>
+                                <button class="menu-card__qty-btn" data-card-action="plus" data-key="${cartKey}">+</button>
+                            </div>
+                        `;
+                    } else {
+                        actionBtnHtml = `
+                            <button class="menu-card__add" data-item-id="${item.id}" aria-label="Добавить в корзину">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                                В корзину
+                            </button>
+                        `;
+                    }
+
+                    const curControl = footer.querySelector('.menu-card__qty-control');
+                    const curAddBtn = footer.querySelector('.menu-card__add');
+
+                    if (qty > 0 && curControl) {
+                        const numEl = curControl.querySelector('.menu-card__qty-num');
+                        if (numEl) numEl.textContent = qty;
+                    } else {
+                        if (curControl) curControl.remove();
+                        if (curAddBtn) curAddBtn.remove();
+                        footer.insertAdjacentHTML('beforeend', actionBtnHtml);
+                    }
+                }
+            });
         });
     }
 
@@ -454,22 +517,28 @@
         saveCart();
         updateCartBadge();
         renderCart();
-        renderMenuItems();
+        updateCardQtyControls();
     }
 
     function updateCartQty(cartKey, delta) {
-        const item = cart.find(ci => ci.cartKey === cartKey);
+        const item = cart.find(ci => {
+            const k = ci.cartKey || ci.itemId;
+            return String(k) === String(cartKey) || String(ci.cartKey) === String(cartKey) || String(ci.itemId) === String(cartKey);
+        });
         if (!item) return;
 
         item.qty += delta;
         if (item.qty <= 0) {
-            cart = cart.filter(ci => ci.cartKey !== cartKey);
+            cart = cart.filter(ci => {
+                const k = ci.cartKey || ci.itemId;
+                return String(k) !== String(cartKey) && String(ci.cartKey) !== String(cartKey) && String(ci.itemId) !== String(cartKey);
+            });
         }
 
         saveCart();
         updateCartBadge();
         renderCart();
-        renderMenuItems();
+        updateCardQtyControls();
     }
 
     function saveCart() {
