@@ -776,12 +776,31 @@
     // ============================================
     // CHECKOUT MODAL
     // ============================================
+    function isStoreOpen() {
+        const now = new Date();
+        const minutes = now.getHours() * 60 + now.getMinutes();
+        // 10:00 = 600 min, 21:30 = 21 * 60 + 30 = 1290 min
+        return minutes >= 600 && minutes <= 1290;
+    }
+
     function openCheckout() {
         if (cart.length === 0) return;
         closeCart();
 
         renderCheckoutSummary();
         prefillCheckout();
+
+        // Check working hours
+        const storeClosedBanner = $('#store-closed-banner');
+        if (storeClosedBanner) {
+            if (!isStoreOpen()) {
+                storeClosedBanner.style.display = 'block';
+                if (dom.btnPlaceOrder) dom.btnPlaceOrder.disabled = true;
+            } else {
+                storeClosedBanner.style.display = 'none';
+                if (dom.btnPlaceOrder) dom.btnPlaceOrder.disabled = false;
+            }
+        }
 
         // Reset state
         dom.checkoutBody.style.display = '';
@@ -835,6 +854,12 @@
     }
 
     function placeOrder() {
+        // Enforce working hours: 10:00 — 21:30
+        if (!isStoreOpen()) {
+            showToast('Заказы принимаются с 10:00 до 21:30. Сейчас заведение закрыто.');
+            return;
+        }
+
         // Validate
         let name, phone;
 

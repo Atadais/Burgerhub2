@@ -24,8 +24,20 @@ router.get('/my/:phone', async (req, res) => {
   }
 });
 
+function isStoreOpenServer() {
+  const now = new Date();
+  const utcHours = now.getUTCHours();
+  const mskHours = (utcHours + 3) % 24;
+  const minutes = mskHours * 60 + now.getUTCMinutes();
+  return minutes >= 600 && minutes <= 1290;
+}
+
 router.post('/', async (req, res) => {
   try {
+    if (!isStoreOpenServer()) {
+      return res.status(400).json({ error: 'Заказы принимаются с 10:00 до 21:30. Сейчас заведение закрыто.' });
+    }
+
     const { type, name, phone, items, total, address, comment } = req.body;
     if (!name || !phone || !items) {
       return res.status(400).json({ error: 'Missing required fields' });

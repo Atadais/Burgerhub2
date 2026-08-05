@@ -91,6 +91,17 @@
         // Toast
         dom.toast = $('#toast');
         dom.toastText = $('#toast-text');
+
+        // Customers Section
+        dom.customersSearchInput = $('#customers-search-input');
+        dom.customersStatCount = $('#customers-stat-count');
+        dom.customersStatTotal = $('#customers-stat-total');
+        dom.customersListContainer = $('#customers-list-container');
+        dom.customerOrdersOverlay = $('#customer-orders-overlay');
+        dom.customerOrdersModal = $('#customer-orders-modal');
+        dom.btnCloseCustomerOrders = $('#btn-close-customer-orders');
+        dom.customerModalTitle = $('#customer-modal-title');
+        dom.customerOrdersList = $('#customer-orders-list');
     }
 
     // ============================================
@@ -207,6 +218,7 @@
         if (activeTab === 'orders') renderOrders();
         if (activeTab === 'revenue') renderRevenue();
         if (activeTab === 'positions') renderPositions();
+        if (activeTab === 'customers') renderCustomers();
     }
 
     function updatePendingBadge() {
@@ -615,6 +627,148 @@
     }
 
     // ============================================
+    // 4. CUSTOMERS SECTION
+    // ============================================
+    let cachedCustomers = [];
+
+    function getCustomersData() {
+        const users = JSON.parse(localStorage.getItem('bh_users') || '[]');
+        const customerMap = {};
+
+        // Add registered users
+        users.forEach(u => {
+            const key = u.phone || u.email || u.name;
+            if (!key) return;
+            customerMap[key] = {
+                id: key,
+                name: u.name || 'Клиент',
+                phone: u.phone || 'Не указан',
+                email: u.email || '',
+                registeredAt: u.createdAt ? new Date(u.createdAt).toLocaleDateString('ru-RU') : 'Зарегистрирован',
+                orders: [],
+                totalSpent: 0
+            };
+        });
+
+        // Associate orders
+        orders.forEach(o => {
+            const key = o.phone || o.name || 'Гость';
+            if (!customerMap[key]) {
+                customerMap[key] = {
+                    id: key,
+                    name: o.name || 'Покупатель',
+                    phone: o.phone || 'Не указан',
+                    email: o.userEmail || '',
+                    registeredAt: o.date ? String(o.date).split(',')[0] : 'Постоянный покупатель',
+                    orders: [],
+                    totalSpent: 0
+                };
+            }
+            customerMap[key].orders.push(o);
+            if (o.status !== 'cancelled') {
+                customerMap[key].totalSpent += (Number(o.total) || 0);
+            }
+        });
+
+        return Object.values(customerMap);
+    }
+
+    function renderCustomers() {
+        cachedCustomers = getCustomersData();
+
+        const totalCount = cachedCustomers.length;
+        const sumTotal = cachedCustomers.reduce((acc, c) => acc + c.totalSpent, 0);
+
+        if (dom.customersStatCount) dom.customersStatCount.textContent = totalCount;
+        if (dom.customersStatTotal) dom.customersStatTotal.textContent = sumTotal.toLocaleString('ru-RU') + ' р';
+
+        const filterQuery = (dom.customersSearchInput?.value || '').trim().toLowerCase();
+        displayFilteredCustomers(filterQuery);
+    }
+
+    function displayFilteredCustomers(query) {
+        if (!dom.customersListContainer) return;
+
+        const filtered = cachedCustomers.filter(c => {
+            if (!query) return true;
+            return (c.name && c.name.toLowerCase().includes(query)) ||
+                   (c.phone && c.phone.toLowerCase().includes(query)) ||
+                   (c.email && c.email.toLowerCase().includes(query));
+        });
+
+        if (filtered.length === 0) {
+            dom.customersListContainer.innerHTML = '<div class="orders-empty">Клиенты не найдены</div>';
+            return;
+        }
+
+        dom.customersListContainer.innerHTML = filtered.map(c => `
+            <div class="customer-card" data-customer-id="${c.id}">
+                <div class="customer-card__header">
+                    <h4 class="customer-card__name">${c.name}</h4>
+                    <span class="customer-card__phone">${c.phone}</span>
+                </div>
+                <div class="customer-card__info">
+                    ${c.email ? `<span>📧 ${c.email}</span>` : ''}
+                    <span>📅 ${c.registeredAt || 'Клиент сервиса'}</span>
+                </div>
+                <div class="customer-card__stats">
+                    <span class="customer-card__orders-count">📦 Заказов: <strong>${c.orders.length}</strong></span>
+                    <span class="customer-card__spent">${c.totalSpent.toLocaleString('ru-RU')} р</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function openCustomerOrdersModal(customerKey) {
+        const customer = cachedCustomers.find(c => String(c.id) === String(customerKey));
+        if (!customer) return;
+
+        if (dom.customerModalTitle) {
+            dom.customerModalTitle.textContent = `История заказов: ${customer.name} (${customer.phone})`;
+        }
+
+        if (dom.customerOrdersList) {
+            if (customer.orders.length === 0) {
+                dom.customerOrdersList.innerHTML = '<div class="orders-empty">У данного клиента пока нет оформленных заказов</div>';
+            } else {
+                dom.customerOrdersList.innerHTML = customer.orders.map(o => {
+                    const statusClass = o.status === 'accepted' ? 'order-card__status--accepted'
+                                      : o.status === 'cancelled' ? 'order-card__status--cancelled'
+                                      : 'order-card__status--pending';
+                    const statusLabel = o.status === 'accepted' ? 'Принят'
+                                      : o.status === 'cancelled' ? 'Отменен'
+                                      : 'В ожидании';
+
+                    return `
+                        <div class="order-card">
+                            <div class="order-card__header">
+                                <div>
+                                    <span class="order-card__id">Заказ #${String(o.id).slice(-6)}</span>
+                                    <span class="order-card__date">${o.date || ''}</span>
+                                </div>
+                                <span class="order-card__status ${statusClass}">${statusLabel}</span>
+                            </div>
+                            <div class="order-card__items">${o.itemsString || (Array.isArray(o.items) ? o.items.map(i => i.name + ' x ' + i.qty).join(', ') : '')}</div>
+                            <div class="order-card__footer">
+                                <span class="order-card__total">Сумма: ${o.total} р</span>
+                                <span class="order-card__type">${o.type === 'delivery' ? '🚗 Доставка' : '🛍️ С собой'}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        if (dom.customerOrdersOverlay) dom.customerOrdersOverlay.classList.add('overlay--active');
+        if (dom.customerOrdersModal) dom.customerOrdersModal.classList.add('modal--open');
+    }
+
+    function closeCustomerOrdersModal() {
+        if (dom.customerOrdersOverlay) dom.customerOrdersOverlay.classList.remove('overlay--active');
+        if (dom.customerOrdersModal) dom.customerOrdersModal.classList.remove('modal--open');
+    }
+
+    // ============================================
     // ADMIN AUTHENTICATION GUARD
     // ============================================
     function checkAdminAuth() {
@@ -755,11 +909,31 @@
 
         dom.btnRemovePhoto.addEventListener('click', removeImageForPosition);
 
+        // Customers Section Listeners
+        if (dom.customersSearchInput) {
+            dom.customersSearchInput.addEventListener('input', e => {
+                displayFilteredCustomers(e.target.value.trim().toLowerCase());
+            });
+        }
+
+        if (dom.customersListContainer) {
+            dom.customersListContainer.addEventListener('click', e => {
+                const card = e.target.closest('.customer-card');
+                if (card && card.dataset.customerId) {
+                    openCustomerOrdersModal(card.dataset.customerId);
+                }
+            });
+        }
+
+        if (dom.btnCloseCustomerOrders) dom.btnCloseCustomerOrders.addEventListener('click', closeCustomerOrdersModal);
+        if (dom.customerOrdersOverlay) dom.customerOrdersOverlay.addEventListener('click', closeCustomerOrdersModal);
+
         // Escape key closes modals
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') {
                 closeImagePicker();
                 closeAddCategoryModal();
+                closeCustomerOrdersModal();
             }
         });
     }
